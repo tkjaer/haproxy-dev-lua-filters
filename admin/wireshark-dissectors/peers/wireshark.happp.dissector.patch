@@ -1,24 +1,12 @@
 diff --git a/epan/dissectors/CMakeLists.txt b/epan/dissectors/CMakeLists.txt
-index 38e2149..5f8cd49 100644
+index 0393f263cc..fc215400d5 100644
 --- a/epan/dissectors/CMakeLists.txt
 +++ b/epan/dissectors/CMakeLists.txt
-@@ -665,6 +665,7 @@ set(DISSECTOR_SRC
- 	packet-h263.c
- 	packet-h263p.c
- 	packet-h264.c
-+	packet-happp.c
- 	packet-hartip.c
- 	packet-hazelcast.c
- 	packet-hci_h1.c
-diff --git a/epan/dissectors/Makefile.am b/epan/dissectors/Makefile.am
-index 70edc66..bc46235 100644
---- a/epan/dissectors/Makefile.am
-+++ b/epan/dissectors/Makefile.am
-@@ -694,6 +694,7 @@ DISSECTOR_SRC = \
- 	packet-h263.c		\
- 	packet-h263p.c		\
- 	packet-h264.c		\
-+	packet-happp.c		\
- 	packet-hartip.c		\
- 	packet-hazelcast.c	\
- 	packet-hci_h1.c		\
+@@ -1262,6 +1262,7 @@ set(DISSECTOR_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-h263.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-h263p.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-h264.c
++       ${CMAKE_CURRENT_SOURCE_DIR}/packet-happp.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-h265.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-hartip.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/packet-hazelcast.c
