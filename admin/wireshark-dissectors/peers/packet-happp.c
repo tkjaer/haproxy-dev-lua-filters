@@ -606,7 +606,7 @@ static int dissect_happp_handshake_pdu(tvbuff_t *tvb, packet_info *pinfo,
 	int line_len, token_len;
 	gint offset = 0, next_offset;
 	const guchar *line, *line_end, *next_token;
-	size_t protocol_strlen;
+	int protocol_strlen;
 
 	line_len = tvb_find_line_end(tvb, offset, -1, &next_offset, TRUE);
 	/* XXX TO DO */
@@ -751,7 +751,7 @@ static int add_enc_field_to_happp_tree(int field_id, proto_tree *tree, tvbuff_t 
                                        guint *offset, guint total, uint64_t *val)
 {
 	uint64_t dec_val;
-	size_t dec_val_len;
+	int dec_val_len;
 	guint saved_offset;
 
 	saved_offset = *offset;
@@ -802,7 +802,7 @@ static void dissect_happp_stkt_define_msg(tvbuff_t *tvb, packet_info *pinfo _U_,
 		return;
 
 	/* Add the stick table name to HAPPP proto tree */
-	proto_tree_add_item(tree, hf_happp_stkt_def_name_value, tvb, offset, dec_val,
+	proto_tree_add_item(tree, hf_happp_stkt_def_name_value, tvb, offset, dec_val & INT_MAX,
 	                    ENC_ASCII | ENC_NA);
 	offset += dec_val;
 
@@ -815,7 +815,7 @@ static void dissect_happp_stkt_define_msg(tvbuff_t *tvb, packet_info *pinfo _U_,
 		return;
 
 	cv = find_conversation(pinfo->num, &pinfo->src, &pinfo->dst,
-	                       pinfo->ptype, pinfo->srcport, pinfo->destport, 0);
+	                       CONVERSATION_TCP, pinfo->srcport, pinfo->destport, 0);
 	if (!cv)
 		return;
 
@@ -847,7 +847,7 @@ static void dissect_happp_stkt_update_msg(tvbuff_t *tvb, packet_info *pinfo _U_,
 	conversation_t *cv;
 
 	cv = find_conversation(pinfo->num, &pinfo->src, &pinfo->dst,
-	                       pinfo->ptype, pinfo->srcport, pinfo->destport, 0);
+	                       CONVERSATION_TCP, pinfo->srcport, pinfo->destport, 0);
 	if (!cv)
 		return;
 
@@ -881,7 +881,7 @@ static void dissect_happp_stkt_update_msg(tvbuff_t *tvb, packet_info *pinfo _U_,
 			return;
 
 		proto_tree_add_item(tree, hf_happp_stkt_updt_key_str_value, tvb,
-		                    offset, *stkt_key_len, ENC_ASCII | ENC_NA);
+		                    offset, *stkt_key_len & INT_MAX, ENC_ASCII | ENC_NA);
 		offset += *stkt_key_len;
 		break;
 	case SMP_T_SINT:
@@ -897,7 +897,7 @@ static void dissect_happp_stkt_update_msg(tvbuff_t *tvb, packet_info *pinfo _U_,
 		break;
 	default:
 		proto_tree_add_item(tree, hf_happp_stkt_updt_key_bytes_value,
-		                    tvb, offset, *stkt_key_len, ENC_NA);
+		                    tvb, offset, *stkt_key_len & INT_MAX, ENC_NA);
 		offset += *stkt_key_len;
 		break;
 	}
@@ -973,9 +973,9 @@ dissect_happp_msg(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree,
 	if (!p)
 		return;
 
-	dec_val_len = p - enc_buf;
+	dec_val_len = p - enc_buf & INT_MAX;
 	proto_tree_add_uint64_format_value(tree, hf_happp_msg_len,
-	                                   tvb, *offset, dec_val_len, dec_msg_len,
+	                                   tvb, *offset, dec_val_len & INT_MAX, dec_msg_len,
 	                                   "%" PRIu64, dec_msg_len);
 	*offset += dec_val_len;
 
@@ -1012,7 +1012,7 @@ dissect_happp_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
 	/* Set the protocol column value */
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "happp");
 
-	first_byte = (gchar)tvb_get_guint8(tvb, offset);
+	first_byte = (gchar)tvb_get_uint8(tvb, offset);
 	if (first_byte != PEER_MSG_CLASS_CONTROL    &&
 	    first_byte != PEER_MSG_CLASS_ERROR      &&
 	    first_byte != PEER_MSG_CLASS_STICKTABLE &&
@@ -1034,7 +1034,7 @@ dissect_happp_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
 			msg_class_byte = first_byte;
 		}
 		else {
-			msg_class_byte = tvb_get_guint8(tvb, offset);
+			msg_class_byte = tvb_get_uint8(tvb, offset);
 		}
 		curr_class = control_class_index_from_byte(msg_class_byte);
 		if (curr_class == -1)
@@ -1057,7 +1057,7 @@ dissect_happp_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
 		                                 tvb, offset++, 1, msg_class_byte,
 		                                 "%u    (%s)", msg_class_byte,
 		                                 class_str_from_byte(msg_class_byte));
-		msg_type_byte = tvb_get_guint8(tvb, offset);
+		msg_type_byte = tvb_get_uint8(tvb, offset);
 
 		/* First byte: message class */
 		switch (msg_class_byte) {
@@ -1117,7 +1117,7 @@ get_happp_msg_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data 
 		goto out;
 
 	saved_offset = offset;
-	first_byte = (gchar)tvb_get_guint8(tvb, offset);
+	first_byte = (gchar)tvb_get_uint8(tvb, offset);
 	if (first_byte == PEER_MSG_CLASS_CONTROL ||
 	    first_byte == PEER_MSG_CLASS_ERROR   ||
 	    first_byte == PEER_MSG_CLASS_RESERVED) {
@@ -1135,7 +1135,7 @@ get_happp_msg_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data 
 		if (left < dec_len)
 			goto out;
 
-		ret = dec_len + offset - saved_offset;
+		ret = dec_len + offset - saved_offset & UINT_MAX;
 	} else {
 		/* hello message: add line lengths to compute this message length. */
 		for (;;) {
@@ -1177,49 +1177,49 @@ proto_register_happp(void)
 			&hf_happp_fake,
 			{
 				":-----------------------------------------------", "happp.fake",
-				FT_STRING, STR_ASCII, NULL, 0, "FAKE", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "FAKE", HFILL
 			}
 		},
 		{
 			&hf_happp_version,
 			{
 				"version", "happp.version",
-				FT_STRING, STR_ASCII, NULL, 0, "version", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "version", HFILL
 			}
 		},
 		{
 			&hf_happp_remotepeerid,
 			{
 				"remotepeerid", "happp.remotepeerid",
-				FT_STRING, STR_ASCII, NULL, 0, "remote peer id", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "remote peer id", HFILL
 			}
 		},
 		{
 			&hf_happp_localpeerid,
 			{
 				"localpeerid", "happp.localpeerid",
-				FT_STRING, STR_ASCII, NULL, 0, "local peer id", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "local peer id", HFILL
 			}
 		},
 		{
 			&hf_happp_processpid,
 			{
 				"processpid", "happp.processpid",
-				FT_STRING, STR_ASCII, NULL, 0, "process pid", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "process pid", HFILL
 			}
 		},
 		{
 			&hf_happp_relativepid,
 			{
 				"relativepid", "happp.relativepid",
-				FT_STRING, STR_ASCII, NULL, 0, "relative pid", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "relative pid", HFILL
 			}
 		},
 		{
 			&hf_happp_status,
 			{
 				"status", "happp.status",
-				FT_STRING, STR_ASCII, NULL, 0, "status message", HFILL
+				FT_STRING, BASE_NONE, NULL, 0, "status message", HFILL
 			}
 		},
 		{
@@ -1268,7 +1268,7 @@ proto_register_happp(void)
 			&hf_happp_stkt_def_name_value,
 			{
 				"    name", "happp.msg.stkt.def.name.value",
-				FT_STRING, STR_ASCII, NULL, 0, NULL, HFILL
+				FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL
 			}
 		},
 		{
@@ -1317,7 +1317,7 @@ proto_register_happp(void)
 			&hf_happp_stkt_updt_key_str_value,
 			{
 				"    key value", "happp.msg.stkt.updt.key.str.value",
-				FT_STRING, STR_ASCII, NULL, 0, NULL, HFILL
+				FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL
 			}
 		},
 		{
@@ -1616,7 +1616,7 @@ proto_register_happp(void)
 	proto_register_subtree_array(ett, array_length(ett));
 }
 
-static gboolean
+static bool
 dissect_happp_heur_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
 	size_t proto_strlen;
@@ -1627,9 +1627,9 @@ dissect_happp_heur_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 	if (tvb_captured_length(tvb) < 2)
 		return FALSE;
 
-	if (tvb_get_guint8(tvb, 0) == PEER_MSG_CLASS_STICKTABLE &&
-	    tvb_get_guint8(tvb, 1) >= PEER_MSG_STKT_UPDATE &&
-	    tvb_get_guint8(tvb, 1) <= PEER_MSG_STKT_ACK)
+	if (tvb_get_uint8(tvb, 0) == PEER_MSG_CLASS_STICKTABLE &&
+	    tvb_get_uint8(tvb, 1) >= PEER_MSG_STKT_UPDATE &&
+	    tvb_get_uint8(tvb, 1) <= PEER_MSG_STKT_ACK)
 		goto found;
 
 	if (tvb_captured_length(tvb) < proto_strlen + 1)
@@ -1639,7 +1639,7 @@ dissect_happp_heur_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 	 * followed by a space character.
 	 */
 	if (tvb_strneql(tvb, 0, HAPPP_PROTOCOL, proto_strlen) ||
-	    tvb_get_guint8(tvb, proto_strlen) != ' ')
+	    tvb_get_uint8(tvb, proto_strlen & INT_MAX) != ' ')
 		return FALSE;
 
  found:
